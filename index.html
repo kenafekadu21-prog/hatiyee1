@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meski Shop - Inventory</title>
+<style>
+/* ===== Body & Headings ===== */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9fafb;
+  padding: 20px;
+  margin: 0;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #1f2937;
+}
+
+/* ===== Controls ===== */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+input, select, button {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+button {
+  background: #0d9488;
+  color: white;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s;
+}
+button:hover:not(:disabled) { background: #0f766e; }
+button:disabled { background: #9ca3af; cursor: default; }
+form.add-form input, form.add-form select { flex: 1 1 120px; }
+form.add-form button { flex: 0 0 auto; }
+
+/* ===== Grid & Product Cards ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+  gap: 20px;
+}
+.product {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.product:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.product img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+.product h3 { margin: 10px 0 5px; color: #111827; }
+.product p { margin: 5px 0; color: #374151; }
+
+/* ===== Status & Categories ===== */
+.status {
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+}
+.available { background: #16a34a; }
+.sold { background: #b91c1c; }
+
+.category {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: white;
+}
+
+/* ===== Remove Button ===== */
+.remove { background: #dc2626; margin-top: 5px; }
+
+/* ===== Responsive Form ===== */
+form.add-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<h1>Meski Shop - Inventory</h1>
+
+<!-- Filters -->
+<div class="controls">
+<input type="text" id="search" placeholder="Search products...">
+<label><input type="checkbox" id="availableOnly"> Available only</label>
+<select id="categoryFilter">
+  <option value="">All Categories</option>
+</select>
+</div>
+
+<!-- Add product form -->
+<form class="add-form" id="addForm">
+<input type="text" id="newName" placeholder="Product name" required>
+<input type="text" id="newPrice" placeholder="Price ($)" required>
+<select id="newCategory" required>
+  <option value="">Select category</option>
+  <option value="Electronics">Electronics</option>
+  <option value="Clothes">Clothes</option>
+  <option value="Accessories">Accessories</option>
+  <option value="Other">Other</option>
+</select>
+<button type="submit">Add Product</button>
+</form>
+
+<div class="grid" id="productGrid"></div>
+
+<script>
+// ===== Initial Data =====
+let products = JSON.parse(localStorage.getItem('products')) || [
+  {id:1,name:"Laptop",price:"$1200",status:"Available",category:"Electronics",image:"https://via.placeholder.com/220x150?text=Laptop"},
+  {id:2,name:"Phone",price:"$800",status:"Sold",category:"Electronics",image:"https://via.placeholder.com/220x150?text=Phone"},
+  {id:3,name:"T-Shirt",price:"$20",status:"Available",category:"Clothes",image:"https://via.placeholder.com/220x150?text=T-Shirt"},
+];
+
+// ===== Elements =====
+const productGrid = document.getElementById('productGrid');
+const searchInput = document.getElementById('search');
+const availableCheckbox = document.getElementById('availableOnly');
+const categoryFilter = document.getElementById('categoryFilter');
+const newName = document.getElementById('newName');
+const newPrice = document.getElementById('newPrice');
+const newCategory = document.getElementById('newCategory');
+const addForm = document.getElementById('addForm');
+
+// ===== Storage =====
+function saveProducts() { localStorage.setItem('products', JSON.stringify(products)); }
+
+// ===== Category Colors =====
+function getCategoryColor(category){
+  switch(category){
+    case "Electronics": return "#3b82f6"; // blue
+    case "Clothes": return "#f97316"; // orange
+    case "Accessories": return "#a855f7"; // purple
+    default: return "#6b7280"; // gray
+  }
+}
+
+// ===== Render category options =====
+function renderCategoryOptions(){
+  const categories = [...new Set(products.map(p=>p.category).filter(c=>c))];
+  categoryFilter.innerHTML = '<option value="">All Categories</option>';
+  categories.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value=c; opt.textContent=c;
+    categoryFilter.appendChild(opt);
+  });
+}
+
+// ===== Render products =====
+function renderProducts(){
+  const searchText = searchInput.value.toLowerCase();
+  const availableOnly = availableCheckbox.checked;
+  const category = categoryFilter.value;
+  productGrid.innerHTML = '';
+
+  products
+    .filter(p=>p.name.toLowerCase().includes(searchText))
+    .filter(p=>!availableOnly || p.status==="Available")
+    .filter(p=>!category || p.category===category)
+    .forEach(p=>{
+      const div = document.createElement('div');
+      div.className='product';
+      div.innerHTML = `
+        <img src="${p.image}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <p class="category" style="background:${getCategoryColor(p.category)}">${p.category || "None"}</p>
+        <p>Price: ${p.price}</p>
+        <p>Status: <span class="status ${p.status==="Available"?"available":"sold"}">${p.status}</span></p>
+        <button ${p.status==="Sold"?'disabled':''} onclick="markSold(${p.id})">Mark as Sold</button>
+        <button class="remove" onclick="removeProduct(${p.id})">Remove</button>
+      `;
+      productGrid.appendChild(div);
+    });
+
+  renderCategoryOptions();
+}
+
+// ===== Actions =====
+function markSold(id){
+  const p = products.find(x=>x.id===id);
+  if(p){ p.status="Sold"; saveProducts(); renderProducts(); }
+}
+
+function removeProduct(id){
+  products = products.filter(x=>x.id!==id);
+  saveProducts();
+  renderProducts();
+}
+
+// ===== Add product =====
+addForm.addEventListener('submit', e=>{
+  e.preventDefault();
+  const name = newName.value.trim();
+  const price = newPrice.value.trim();
+  const category = newCategory.value;
+  if(!name || !price || !category) return;
+  const id = Date.now();
+  products.push({
+    id,
+    name,
+    price,
+    status:"Available",
+    category,
+    image:"https://via.placeholder.com/220x150?text="+encodeURIComponent(name)
+  });
+  newName.value=""; newPrice.value=""; newCategory.value="";
+  saveProducts();
+  renderProducts();
+});
+
+// ===== Filters =====
+searchInput.addEventListener('input', renderProducts);
+availableCheckbox.addEventListener('change', renderProducts);
+categoryFilter.addEventListener('change', renderProducts);
+
+// ===== Initial render =====
+renderProducts();
+</script>
+
+</body>
+</html>
