@@ -2,49 +2,50 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Meski Shop - Inventory</title>
+<title>Meski Shop Pro</title>
 
 <style>
 body {
   font-family: 'Segoe UI', sans-serif;
-  background: #0f172a;
+  background: #0b1220;
+  color: #e5e7eb;
   margin: 0;
   padding: 20px;
-  color: #e5e7eb;
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: auto;
 }
 
-/* Header */
 .header {
   background: linear-gradient(135deg, #06b6d4, #3b82f6);
-  color: white;
   padding: 25px;
   text-align: center;
   border-radius: 12px;
-  margin-bottom: 20px;
 }
 
-/* Card */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
 .card {
   background: #1e293b;
   padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  border-radius: 10px;
+  text-align: center;
 }
 
-/* Controls */
-.controls {
+form {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
-/* Inputs */
 input, select {
   padding: 10px;
   border-radius: 8px;
@@ -54,58 +55,30 @@ input, select {
   flex: 1;
 }
 
-input::placeholder {
-  color: #94a3b8;
-}
-
-input:focus, select:focus {
-  border-color: #06b6d4;
-  box-shadow: 0 0 0 2px rgba(6,182,212,0.3);
-}
-
-/* Buttons */
 button {
   background: #06b6d4;
   color: white;
   border: none;
-  padding: 10px 14px;
+  padding: 10px;
   border-radius: 8px;
   cursor: pointer;
-  transition: 0.2s;
 }
 
-button:hover {
-  background: #0284c7;
-  transform: scale(1.05);
-}
+button:hover { background: #0284c7; }
 
-.remove {
-  background: #ef4444;
-}
+.remove { background: red; }
 
-.remove:hover {
-  background: #dc2626;
-}
-
-/* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px,1fr));
   gap: 20px;
 }
 
-/* Product */
 .product {
   background: #1e293b;
   border-radius: 12px;
-  overflow: hidden;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  transition: 0.2s;
-}
-
-.product:hover {
-  transform: translateY(-6px);
+  padding-bottom: 10px;
 }
 
 .product img {
@@ -114,118 +87,116 @@ button:hover {
   object-fit: cover;
 }
 
-.status {
-  font-weight: bold;
-}
-
-.available { color: #22c55e; }
-.sold { color: #ef4444; }
-
-.category {
-  color: white;
-  padding: 3px 6px;
-  border-radius: 5px;
-  display: inline-block;
-  font-size: 12px;
+.low {
+  border: 2px solid orange;
 }
 </style>
 
 </head>
+
 <body>
 
 <div class="container">
 
 <div class="header">
   <h1>Meski Shop</h1>
-  <p>Inventory Management System</p>
+  <p>Inventory System</p>
 </div>
 
-<div class="card">
-  <div class="controls">
-    <input type="text" id="search" placeholder="Search...">
-    <label><input type="checkbox" id="availableOnly"> Available</label>
-    <select id="categoryFilter">
-      <option value="">All Categories</option>
-    </select>
-  </div>
+<div class="dashboard">
+  <div class="card">Products: <h2 id="totalProducts">0</h2></div>
+  <div class="card">Stock: <h2 id="totalStock">0</h2></div>
+  <div class="card">Sold: <h2 id="totalSold">0</h2></div>
+  <div class="card">Profit: <h2 id="totalProfit">$0</h2></div>
 </div>
 
-<div class="card">
-  <form id="addForm" class="controls">
-    <input type="text" id="newName" placeholder="Product name" required>
-    <input type="text" id="newPrice" placeholder="Price" required>
-    <select id="newCategory" required>
-      <option value="">Category</option>
-      <option>Electronics</option>
-      <option>Clothes</option>
-      <option>Accessories</option>
-      <option>Other</option>
-    </select>
-    <input type="file" id="newImage" accept="image/*">
-    <button type="submit">Add</button>
-  </form>
-</div>
+<input type="text" id="search" placeholder="Search..." oninput="render()">
 
-<div id="productGrid" class="grid"></div>
+<form id="form">
+  <input type="text" id="name" placeholder="Product name" required>
+  <input type="number" id="buyPrice" placeholder="Buying Price" required>
+  <input type="number" id="sellPrice" placeholder="Selling Price" required>
+  <input type="number" id="qty" placeholder="Quantity" required>
+
+  <select id="category">
+    <option>Electronics</option>
+    <option>Clothes</option>
+    <option>Accessories</option>
+    <option>Other</option>
+  </select>
+
+  <input type="file" id="image" accept="image/*">
+
+  <button type="submit">Add</button>
+</form>
+
+<div id="grid" class="grid"></div>
 
 </div>
 
 <script>
-let products = JSON.parse(localStorage.getItem('products')) || [];
+let products = JSON.parse(localStorage.getItem("products")) || [];
 
-const productGrid = document.getElementById('productGrid');
-
-function save() {
-  localStorage.setItem('products', JSON.stringify(products));
+function save(){
+  localStorage.setItem("products", JSON.stringify(products));
 }
 
-function toBase64(file) {
-  return new Promise((res, rej) => {
+function toBase64(file){
+  return new Promise((res, rej)=>{
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => res(reader.result);
+    reader.onload = ()=>res(reader.result);
     reader.onerror = rej;
   });
 }
 
-function getColor(cat){
-  return {
-    Electronics:"#3b82f6",
-    Clothes:"#f97316",
-    Accessories:"#a855f7",
-    Other:"#6b7280"
-  }[cat] || "#6b7280";
-}
+const form = document.getElementById("form");
+const name = document.getElementById("name");
+const buyPrice = document.getElementById("buyPrice");
+const sellPrice = document.getElementById("sellPrice");
+const qty = document.getElementById("qty");
+const category = document.getElementById("category");
+const image = document.getElementById("image");
 
-function render(){
-  productGrid.innerHTML = "";
+form.onsubmit = async (e)=>{
+  e.preventDefault();
 
-  if(products.length === 0){
-    productGrid.innerHTML = "<p>No products yet</p>";
+  if(!name.value || !buyPrice.value || !sellPrice.value || !qty.value){
+    alert("Please fill all fields");
     return;
   }
 
-  products.forEach(p=>{
-    const div = document.createElement("div");
-    div.className = "product";
+  let img = "https://via.placeholder.com/220x150";
 
-    div.innerHTML = `
-      <img src="${p.image}">
-      <h3>${p.name}</h3>
-      <p class="category" style="background:${getColor(p.category)}">${p.category}</p>
-      <p>${p.price}</p>
-      <p class="status ${p.status==='Available'?'available':'sold'}">${p.status}</p>
-      <button onclick="sell(${p.id})">Sell</button>
-      <button class="remove" onclick="removeItem(${p.id})">Remove</button>
-    `;
+  if(image.files[0]){
+    img = await toBase64(image.files[0]);
+  }
 
-    productGrid.appendChild(div);
+  products.push({
+    id: Date.now(),
+    name: name.value.trim(),
+    buyPrice: Number(buyPrice.value),
+    sellPrice: Number(sellPrice.value),
+    total: Number(qty.value),
+    sold: 0,
+    category: category.value,
+    image: img
   });
-}
+
+  form.reset();
+  save();
+  render();
+};
 
 function sell(id){
   const p = products.find(x=>x.id===id);
-  if(p){ p.status="Sold"; save(); render(); }
+  if(p && p.sold < p.total){
+    p.sold++;
+    save();
+    render();
+  } else {
+    alert("No stock left!");
+  }
 }
 
 function removeItem(id){
@@ -234,33 +205,61 @@ function removeItem(id){
   render();
 }
 
-document.getElementById("addForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+function render(){
+  const grid = document.getElementById("grid");
+  const search = document.getElementById("search").value.toLowerCase();
 
-  const name = newName.value;
-  const price = newPrice.value;
-  const category = newCategory.value;
-  const file = newImage.files[0];
+  grid.innerHTML = "";
 
-  let image = "https://via.placeholder.com/220x150?text="+name;
+  let totalStock = 0;
+  let totalSold = 0;
+  let totalProfit = 0;
 
-  if(file){
-    image = await toBase64(file);
-  }
+  products
+  .filter(p => (p.name || "").toLowerCase().includes(search))
+  .forEach(p=>{
 
-  products.push({
-    id: Date.now(),
-    name,
-    price,
-    category,
-    status:"Available",
-    image
+    const remaining = p.total - p.sold;
+    const profit = (p.sellPrice - p.buyPrice) * p.sold;
+
+    totalStock += p.total;
+    totalSold += p.sold;
+    totalProfit += profit;
+
+    const div = document.createElement("div");
+    div.className = "product" + (remaining <= 3 && remaining > 0 ? " low" : "");
+
+    div.innerHTML = `
+      <img src="${p.image}">
+      <h3>${p.name}</h3>
+      <p>${p.category}</p>
+
+      <p>Buy: $${p.buyPrice}</p>
+      <p>Sell: $${p.sellPrice}</p>
+
+      <p>Total: ${p.total}</p>
+      <p>Sold: ${p.sold}</p>
+      <p>Remaining: ${remaining}</p>
+
+      <p>Profit: $${profit.toFixed(2)}</p>
+
+      <button onclick="sell(${p.id})" ${remaining===0?"disabled":""}>
+        Sell
+      </button>
+
+      <button class="remove" onclick="removeItem(${p.id})">
+        Delete
+      </button>
+    `;
+
+    grid.appendChild(div);
   });
 
-  addForm.reset();
-  save();
-  render();
-});
+  document.getElementById("totalProducts").innerText = products.length;
+  document.getElementById("totalStock").innerText = totalStock;
+  document.getElementById("totalSold").innerText = totalSold;
+  document.getElementById("totalProfit").innerText = "$" + totalProfit.toFixed(2);
+}
 
 render();
 </script>
